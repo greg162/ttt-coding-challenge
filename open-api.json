@@ -2,57 +2,68 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Befit API",
-    "version": "1.0.0-oas3"
+    "version": "1.0.1"
   },
   "servers": [
     {
-      "url": "http://befit.org.localhost/api/"
+      "url": "localhost/"
     }
   ],
   "paths": {
-    "/events": {
+    "/api/events": {
       "get": {
         "tags": [
           "user"
         ],
-        "summary": "Returns a list of events",
+        "summary": "Returns a list of events in order of ascending event date. If no start and end date is passed events for the next 6 months will be returned.",
         "operationId": "listEvents",
         "parameters": [
           {
             "name": "start_date",
             "in": "query",
-            "description": "Return events after this date.",
+            "description": "Return events after this date. The date should be in the format \"YYYY mmm d\". Ensure that the day does not have leading zeros and that the month is a short  three letter textual representation of a month (Jan, May, Oct, etc).",
             "required": false,
             "style": "form",
             "explode": true,
             "schema": {
-              "pattern": "/([0-9]{4})-(?:[0-9]{2})-([0-9]{2})/",
               "type": "string",
-              "example": "2019-05-17"
+              "example": "2020 Oct 1"
             }
           },
           {
             "name": "end_date",
             "in": "query",
-            "description": "Return events before this date",
+            "description": "Return events before this date.  The date should be in the format \"YYYY mmm d\". Ensure that the day does not have leading zeros and that the month is a short  three letter textual representation of a month (Jan, May, Oct, etc).",
             "required": false,
             "style": "form",
             "explode": true,
             "schema": {
-              "pattern": "/([0-9]{4})-(?:[0-9]{2})-([0-9]{2})/",
               "type": "string",
-              "example": "2019-05-17"
+              "example": "2020 Oct 31"
             }
           },
           {
             "name": "query",
             "in": "query",
-            "description": "Only returns events that have the string passed in their name.",
+            "description": "Search events by name. Only returns events that have the query value in their name. Note - This search is not case sensitive.",
             "required": false,
             "style": "form",
             "explode": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "Marathon"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Five results are returned per page, pass a page number to go to the next set.",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "integer",
+              "example": 2
             }
           }
         ],
@@ -62,9 +73,38 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Event"
+                  "type": "object",
+                  "properties": {
+                    "first_page_url": {
+                      "type": "string"
+                    },
+                    "current_page": {
+                      "type": "integer"
+                    },
+                    "from": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "next_page": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "path": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "per_page": {
+                      "type": "integer"
+                    },
+                    "prev_page_url": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Event"
+                      }
+                    }
                   }
                 }
               }
