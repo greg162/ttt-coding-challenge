@@ -22,38 +22,48 @@ class EventController extends Controller
         if ($validator->passes()) {
             
             //Get items from the request and add to filter where
-            $where = [];
+            $where            = [];
+            $query            = Event::query();
+            $searchTermPassed = false;
+            $query = $query->where($where)->with(['participants' => function ($query) {
+                return $query->orderBy('last_name', 'asc')->orderBy('first_name', 'asc')->limit(200); //Sanity check! We don't know the limit of the number of people who can attend an event, so don't allow more than 200 to be returned at once
+            }]);
             //get the passed start date, or use the current date
             if($request->has('start_date')) {
                 $startDate = Carbon::createFromFormat('Y M j', $request->start_date)->format('Y-m-d');
-                $where[] = ['event_date', '>=', $startDate ];
+                $query = $query->where('event_date', '>=', $startDate );
+                $searchTermPassed = true;
             }
 
             //Get the end date passed in the request, or use the date  6 months from now
             if($request->has('end_date'))   {
                 $endDate = Carbon::createFromFormat('Y M j', $request->end_date)->format('Y-m-d');
-                $where[] = ['event_date', '<=', $endDate ];
+                $query = $query->where('event_date', '<=', $endDate );
+                $searchTermPassed = true;
             }
 
             //If a query was passed in the URL, filter on it.
             if($request->has('query'))      {
-                $escapedInput = (config('database.default') == 'mysql')? Util::escapeLike($request->input('query')) : $request->input('query') ; //% and _ characters are not escaped automatically. So escape them if using mysql.
-                $where[] = ['name', 'like', '%'.$escapedInput."%" ];
+                if(config('database.default') == 'mysql') {
+                    $escapedInput = Util::escapeLike($request->input('query')) ; //% and _ characters are not escaped automatically. So escape them if using mysql.
+                    $query = $query->whereRaw("LOWER(`name`) LIKE ? ", ['%'.strtolower($escapedInput)."%" ]);
+                } else {
+                    $query = $query->where("name", 'ilike', '%'.strtolower($request->input('query'))."%");
+                }
+                $searchTermPassed = true;
             }
 
-            //If no where variables are already set, return results for the last 6 months
-            if(empty($where)) {
+            //If no where searches were passed by the user, return results for the last 6 months
+            if(!$searchTermPassed) {
                 $startDate = Carbon::now('America/Vancouver')->format('Y-m-d');
-                $where[] = ['event_date', '>=', $startDate ];
+                $query = $query->where('event_date', '>=', $startDate );
                 $endDate = Carbon::now('America/Vancouver')->addMonth(3)->format('Y-m-d');;
-                $where[] = ['event_date', '<=', $endDate ];
+                $query = $query->where('event_date', '<=', $endDate );
 
             }
 
             //Get the appropriate events and participants
-            $events = Event::where($where)->with(['participants' => function ($query) {
-                return $query->orderBy('last_name', 'asc')->orderBy('first_name', 'asc')->limit(200); //Sanity check! We don't know the limit of the number of people who can attend an event, so don't allow more than 200 to be returned at once
-            }])->orderBy('event_date', 'asc')->get();
+            $events = $query->orderBy('event_date', 'asc')->simplePaginate(5);
             return $events;
         } else {
             //return the validator errors
