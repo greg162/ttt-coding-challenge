@@ -31,12 +31,14 @@ class EventControllerTest extends TestCase
     public function testInvalidStartDateDay()
     {
         $response = $this->get('/api/events?start_date=2020+Feb+31');
+        $response->assertJsonPath('error.start_date.0', "The start date does not match the format Y M j.");
         $response->assertStatus(422);
     }
 
     public function testInvalidStartDateFormat()
     {
         $response = $this->get('/api/events?start_date=2020-02-02');
+        $response->assertJsonPath('error.start_date.0', "The start date does not match the format Y M j.");
         $response->assertStatus(422);
     }
 
@@ -52,12 +54,14 @@ class EventControllerTest extends TestCase
     public function testInvalidEndDateDay()
     {
         $response = $this->get('/api/events?end_date=2020+Feb+31');
+        $response->assertJsonPath('error.end_date.0', "The end date does not match the format Y M j.");
         $response->assertStatus(422);
     }
 
     public function testInvalidEndDateFormat()
     {
         $response = $this->get('/api/events?end_date=2020-02-02');
+        $response->assertJsonPath('error.end_date.0', "The end date does not match the format Y M j.");
         $response->assertStatus(422);
     }
 
@@ -76,7 +80,14 @@ class EventControllerTest extends TestCase
     {
         $response = $this->get('/api/events?query=Van');
         $response->assertStatus(200)
-        ->assertJsonPath('0.id', 1);
+        ->assertJsonPath('data.0.id', 1);
+    }
+
+    public function testQueryIsCaseInsensitive()
+    {
+        $response = $this->get('/api/events?query=vAN');
+        $response->assertStatus(200)
+        ->assertJsonPath('data.0.id', 1);
     }
 
     public function testQueryWithPercentage()
@@ -84,7 +95,7 @@ class EventControllerTest extends TestCase
         $response = $this->get('/api/events?query=Van%');
 
         $response->assertStatus(200);
-        $response->assertExactJson([]);
+        $response->assertJsonPath('data', []);
     }
 
 }
