@@ -19,6 +19,7 @@ class Participant extends Model
         'last_name'
     ];
 
+    //Link the participant to its event.
     public function event() {
         return $this->belongsTo('App\Models\Event');
     }

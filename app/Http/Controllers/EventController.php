@@ -21,28 +21,28 @@ class EventController extends Controller
         $validator = Validator::make($request->all(), Event::validationRulesIndex());
         if ($validator->passes()) {
             
-            //Get items from the request and add to filter where
+            //Get the events list and return them.
             $where            = [];
             $query            = Event::query();
             $searchTermPassed = false;
             $query = $query->where($where)->with(['participants' => function ($query) {
                 return $query->orderBy('last_name', 'asc')->orderBy('first_name', 'asc')->limit(200); //Sanity check! We don't know the limit of the number of people who can attend an event, so don't allow more than 200 to be returned at once
             }]);
-            //get the passed start date, or use the current date
+            //get the passed start date and add it to the query.
             if($request->has('start_date')) {
                 $startDate = Carbon::createFromFormat('Y M j', $request->start_date)->format('Y-m-d');
                 $query = $query->where('event_date', '>=', $startDate );
                 $searchTermPassed = true;
             }
 
-            //Get the end date passed in the request, or use the date  6 months from now
+            //Get the end date passed in the request and add it to the query.
             if($request->has('end_date'))   {
                 $endDate = Carbon::createFromFormat('Y M j', $request->end_date)->format('Y-m-d');
                 $query = $query->where('event_date', '<=', $endDate );
                 $searchTermPassed = true;
             }
 
-            //If a query was passed in the URL, filter on it.
+            //If a query was passed search the names for the value.
             if($request->has('query'))      {
                 if(config('database.default') == 'mysql') {
                     $escapedInput = Util::escapeLike($request->input('query')) ; //% and _ characters are not escaped automatically. So escape them if using mysql.
@@ -53,7 +53,7 @@ class EventController extends Controller
                 $searchTermPassed = true;
             }
 
-            //If no where searches were passed by the user, return results for the last 6 months
+            //If no search params were passed by the user, return the data for the last 6 months
             if(!$searchTermPassed) {
                 $startDate = Carbon::now('America/Vancouver')->format('Y-m-d');
                 $query = $query->where('event_date', '>=', $startDate );
@@ -62,7 +62,7 @@ class EventController extends Controller
 
             }
 
-            //Get the appropriate events and participants
+            //load the appropriate events and participants and return to the user
             $events = $query->orderBy('event_date', 'asc')->simplePaginate(5);
             return $events;
         } else {

@@ -33,10 +33,10 @@ class Event extends Model
         'event_date' => 'datetime:Y-m-d',
     ];
 
+    //Link the participants to the event.
     public function participants() {
         return $this->hasMany('App\Models\Participant');
     }
-
 
     //Validation rules for the event list endpoint
     static function validationRulesIndex() {
